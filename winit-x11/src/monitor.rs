@@ -245,11 +245,19 @@ impl XConnection {
 
     #[inline]
     pub fn primary_monitor(&self) -> Result<MonitorHandle, X11Error> {
-        Ok(self
-            .available_monitors()?
-            .into_iter()
-            .find(|monitor| monitor.primary)
-            .unwrap_or_else(MonitorHandle::dummy))
+        let mut monitors_lock = self.monitor_handles.lock().unwrap();
+        let monitor = match *monitors_lock {
+            Some(ref monitors) => monitors.iter().find(|monitor| monitor.primary).cloned(),
+            None => {
+                let monitors = self.query_monitor_list()?;
+                let monitor = monitors.iter().find(|monitor| monitor.primary).cloned();
+                if !DISABLE_MONITOR_LIST_CACHING {
+                    *monitors_lock = Some(monitors);
+                }
+                monitor
+            },
+        };
+        Ok(monitor.unwrap_or_else(MonitorHandle::dummy))
     }
 
     pub fn select_xrandr_input(&self, root: xproto::Window) -> Result<u8, X11Error> {
