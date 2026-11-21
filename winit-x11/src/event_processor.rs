@@ -1371,7 +1371,6 @@ impl EventProcessor {
             None => return,
         };
 
-        let mut events = Vec::new();
         let mut value = event.valuators.values;
         for i in 0..event.valuators.mask_len * 8 {
             if !xinput2::XIMaskIsSet(mask, i) {
@@ -1399,14 +1398,10 @@ impl EventProcessor {
                     phase: TouchPhase::Moved,
                     source: ScrollSource::Unknown,
                 };
-                events.push(event);
+                app.window_event(&self.target, window_id, event);
             }
 
             value = unsafe { value.offset(1) };
-        }
-
-        for event in events {
-            app.window_event(&self.target, window_id, event);
         }
     }
 
